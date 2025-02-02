@@ -1,0 +1,17 @@
+[project]
+name = "genai-systems"
+authors = [
+    { name = "Riley Moynihan", email = "rmoynihan@mccombs.utexas.edu" }
+]
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "langchain-chroma>=0.2.1",
+    "langchain-core>=0.3.33",
+    "langchain-openai>=0.3.3",
+    "langgraph>=0.2.69",
+    "pydantic>=2.10.6",
+    "rich>=13.9.4",
+]
