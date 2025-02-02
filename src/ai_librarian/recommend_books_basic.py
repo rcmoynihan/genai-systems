@@ -10,41 +10,45 @@ from ai_librarian.utils.enums import OpenAIModel
 # Initialize Rich console
 console = Console()
 
-# Define the prompt template
-prompt_template = ChatPromptTemplate.from_messages(
-    [
-        (
-            "system",
-            "You are a helpful librarian. Recommend 3 books on the topic the user is interested in.",
-        ),
-        ("user", "{input}"),
-    ]
-)
 
-# Define the LLM
-llm = ChatOpenAI(model=OpenAIModel.GPT_4_O_MINI, temperature=MODEL_TEMPERATURE)
+class RecommendBooksAgent:
+    def __init__(self):
+        # Define the prompt template
+        self.prompt_template = ChatPromptTemplate.from_messages(
+            [
+                (
+                    "system",
+                    "You are a helpful librarian. Recommend 3 books on the topic the user is interested in.",
+                ),
+                ("human", "{input}"),
+            ]
+        )
 
+        # Define the LLM
+        self.llm = ChatOpenAI(
+            model=OpenAIModel.GPT_4_O_MINI, temperature=MODEL_TEMPERATURE
+        )
 
-def get_book_recommendations(request: str) -> str:
-    """
-    Get book recommendations based on user's request.
+    def get_book_recommendations(self, request: str) -> str:
+        """
+        Get book recommendations based on user's request.
 
-    Args:
-        request (str): The user's recommendation request.
+        Args:
+            request (str): The user's recommendation request.
 
-    Returns:
-        str: The book recommendations.
-    """
-    # Interpolate the request into the prompt template
-    prompt = prompt_template.invoke({"input": request})
+        Returns:
+            str: The book recommendations.
+        """
+        # Interpolate the request into the prompt template
+        prompt = self.prompt_template.invoke({"input": request})
 
-    try:
-        # Invoke the LLM with the interpolated prompt
-        response = llm.invoke(prompt)
-        return response.content
+        try:
+            # Invoke the LLM with the interpolated prompt
+            response = self.llm.invoke(prompt)
+            return response.content
 
-    except Exception as e:
-        return f"Sorry, I encountered an error: {str(e)}"
+        except Exception as e:
+            return f"Sorry, I encountered an error: {str(e)}"
 
 
 def main():
@@ -56,6 +60,8 @@ def main():
         border_style="cyan",
     )
     console.print(welcome_panel)
+
+    agent = RecommendBooksAgent()
 
     while True:
         # User input with prompt styling
@@ -71,7 +77,7 @@ def main():
             break
 
         # Get and display recommendations with markdown formatting
-        response = get_book_recommendations(user_input)
+        response = agent.get_book_recommendations(user_input)
         md = Markdown(response)
         console.print("\n[bold blue]AI Librarian:[/]", md)
 
