@@ -1,10 +1,12 @@
 import asyncio
 from enum import Enum
-from typing import Literal
+from typing import Annotated, Literal
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
+from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
+from langgraph.graph.message import add_messages
 from langgraph.types import Command
 from pydantic import BaseModel, Field
 from rich.console import Console
@@ -32,6 +34,7 @@ class State(BaseModel):
     request: str | None = None
     result: str | None = None
     response: str | None = None
+    messages: Annotated[list, add_messages]
 
 
 class Routes(str, Enum):
@@ -54,7 +57,7 @@ class RouterResponse(BaseModel):
         description=(
             "The route to take. 'recommend' if the user wants book recommendations, "
             "'checkout_return' if the user wants to checkout or return a book, "
-            "'respond' if the request does not map to a sub-agent."
+            "'respond' if the request does not map to a sub-agent or is a general knowledge question about the books or authors."
         ),
     )
     request: str = Field(
@@ -101,7 +104,8 @@ class LibrarianSupervisorAgent:
         self.builder.add_edge(Routes.CHECKOUT_RETURN.value, "respond")
         self.builder.add_edge("respond", END)
 
-        self.graph = self.builder.compile()
+        checkpointer = MemorySaver()
+        self.graph = self.builder.compile(checkpointer=checkpointer)
         with open("graph.png", "wb") as f:
             f.write(self.graph.get_graph().draw_mermaid_png())
 
@@ -118,14 +122,17 @@ class LibrarianSupervisorAgent:
                     (
                         "You are a librarian, and have access to various agents that can help you with the user's request. "
                         "You are responsible for routing the user's request to the appropriate agent "
-                        "and then returning the result of the agent's response."
+                        "and then returning the result of the agent's response. "
+                        "You have the following messages in your memory: {messages}"
                     ),
                 ),
                 ("human", "{input}"),
             ]
         )
 
-        prompt = prompt_template.invoke({"input": state.request})
+        prompt = prompt_template.invoke(
+            {"input": state.request, "messages": state.messages}
+        )
 
         llm_with_structured_output = self.llm.with_structured_output(RouterResponse)
         response = llm_with_structured_output.invoke(prompt)
@@ -133,7 +140,7 @@ class LibrarianSupervisorAgent:
         console.print(f"[bold red]Routing to {response.route}[/]")
 
         return Command(
-            update={"request": response.request},
+            update={"request": response.request, "messages": response.request},
             goto=response.route,
         )
 
@@ -180,15 +187,24 @@ class LibrarianSupervisorAgent:
                     (
                         "You are the final thought in a librarian agent. Inform the user of the results of the agent's response. "
                         "If the response is a list of books, format them as a markdown list. "
-                        "Comment on the status of the books (checked out, available, etc.)"
+                        "Comment on the status of the books (checked out, available, etc.) "
+                        "If the user's request is a general knowledge question about the books or authors, answer the question directly and concisely. "
+                        "The user's request is: {request} "
+                        "You have the following messages in your memory: {messages}"
                     ),
                 ),
                 ("human", "Result: {input}"),
             ]
         )
-        prompt = prompt_template.invoke({"input": state.result})
+        prompt = prompt_template.invoke(
+            {
+                "input": state.result,
+                "request": state.request,
+                "messages": state.messages,
+            }
+        )
         response = self.llm.invoke(prompt)
-        return {"response": response.content}
+        return {"response": response.content, "messages": response.content}
 
 
 async def async_main():
@@ -220,7 +236,8 @@ async def async_main():
             break
 
         # Handle user requests for checking out or returning books
-        response = await librarian.graph.ainvoke({"request": user_input})
+        config = {"configurable": {"thread_id": "1"}}
+        response = await librarian.graph.ainvoke({"request": user_input}, config=config)
         md = Markdown(response["response"])
         console.print("\n[bold blue]AI Librarian:[/]", md)
 

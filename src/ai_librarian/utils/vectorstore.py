@@ -26,7 +26,7 @@ BOOKS = [
     ),
     Book(
         isbn="0451524934",
-        title="1984",
+        title="Nineteen Eighty-Four",
         author="George Orwell",
         description="A dystopian novel set in a totalitarian society where critical thinking is suppressed and surveillance is omnipresent.",
         year=1949,
