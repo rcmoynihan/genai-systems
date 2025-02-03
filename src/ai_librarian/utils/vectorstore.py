@@ -17,6 +17,14 @@ class Book(BaseModel):
 
 BOOKS = [
     Book(
+        isbn="1234567891",
+        title="The Hunger Games",
+        author="Suzanne Collins",
+        description="A dystopian novel set in a totalitarian society where critical thinking is suppressed and surveillance is omnipresent.",
+        year=2008,
+        checked_out=False,
+    ),
+    Book(
         isbn="1234567890",
         title="The Great Gatsby",
         author="F. Scott Fitzgerald",
