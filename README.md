@@ -19,14 +19,9 @@ To run the examples, you will need the following dependencies installed first:
 - [uv](https://docs.astral.sh/uv/) (dependency manager, written in Rust)
 - [Python 3.10](https://www.python.org/downloads/) (you can also use `uv` to manage your Python versions)
 
-Once you have these installed, clone and navigate to the repo. From there, run the following command to install the dependencies:
 
-```bash
-uv install
-```
 
-Finally, you will need to create a `.env` file in the root of the repo with the following variables:
-
+You will also need to create a `.env` file in the root of the repo with the following variables:
 ```
 OPENAI_API_KEY=<your-openai-api-key>
 TAVILY_API_KEY=<your-tavily-api-key>
